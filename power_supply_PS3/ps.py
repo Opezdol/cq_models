@@ -4,6 +4,7 @@ params = {
 	'W': 55,
 	'h': 26,
 	'w': 26,
+    'fillet':9,
 	}
 class Fix ():
 	def __init__(self, params:dict):
@@ -25,7 +26,7 @@ class Fix ():
 				.assemble()
 				.reset()
 				.vertices('<Y')
-				.fillet(5)
+				.fillet(self.fillet)
 				)
 		res = (
 			cq.Workplane()
@@ -57,4 +58,3 @@ show_object(plate.make())
 """
 fix = Fix(params)
 show_object( fix.make())
-					
