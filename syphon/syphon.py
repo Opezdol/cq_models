@@ -1,4 +1,5 @@
 import cadquery as cq
+import math
 
 base_params = {
         'R' : 40,
@@ -16,15 +17,40 @@ class Base():
             self.__dict__.update(params)
         else:
             raise AttributeError(f' Dict as params from {self}')
+        self.path = self.makePath()
 
     def make(self):
         return (
                 cq.Workplane()
-                .circle(self.R)
-                .extrude(self.H)
+                .circle(self.R2)
+                .extrude(self.H2)
+                .faces('>Z').workplane()
+                .circle(self.R).extrude(self.H)
+                .faces('<Z').workplane()
+                .circle(self.R-self.wall).cutThruAll()
                 )
+
+    def makePath(self):
+
+        def _makeParametricWire(x):
+            return (x, 10* math.sin(x),0)
+
+        return (
+                cq.Workplane('XZ')
+                .center(0,self.H+self.H2)
+                .parametricCurve(
+                    _makeParametricWire,
+                    N=50,
+                    start = 0,
+                    stop = 10,
+                    makeWire=True,
+                    )
+                )
+
+
 def show(obj):
     show_object(obj.make(), name=obj.name)
 
 res = Base(base_params)
-show(res)
+path = res.path
+show_object(path)
