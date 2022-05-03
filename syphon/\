@@ -1,0 +1,20 @@
+import cadquery as cq
+
+base_params = {
+        'R' : 40,
+        'R2' : 45,
+        'H2' : 3,
+        'wall': 2,
+        }
+
+class Base():
+
+    def __init__(self, params):
+        if isinstance(params,dict):
+            self.__dict__.update(params)
+        else:
+            raise AttributeError(f' Dict as params from {self}')
+
+
+
+
