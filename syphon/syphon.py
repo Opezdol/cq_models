@@ -28,12 +28,21 @@ class Base():
                 .circle(self.R).extrude(self.H)
                 .faces('<Z').workplane()
                 .circle(self.R-self.wall).cutThruAll()
+                # prepare for sweep and sweep
+                .faces('>Z').workplane()
+                .sketch().circle(self.R).circle(self.R-self.wall)
+                .finalize()
+                .sweep(
+                    self.path,
+                    isFrenet=True,
+                    clean=True,
+                    )
                 )
 
     def makePath(self):
 
         def _makeParametricWire(x):
-            return (x, 10* math.sin(x),0)
+            return (x, self.H*3 * math.sin(x/self.R/2),0)
 
         return (
                 cq.Workplane('XZ')
@@ -42,7 +51,7 @@ class Base():
                     _makeParametricWire,
                     N=50,
                     start = 0,
-                    stop = 10,
+                    stop = self.R*2*math.pi,
                     makeWire=True,
                     )
                 )
@@ -53,4 +62,5 @@ def show(obj):
 
 res = Base(base_params)
 path = res.path
-show_object(path)
+show_object(path, name='path')
+show(res)
