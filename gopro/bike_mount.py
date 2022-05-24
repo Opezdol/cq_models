@@ -1,5 +1,5 @@
 from cadquery import Workplane, Vector, Face, Plane, Sketch, Location
-from cadquery.selectors import InverseSelector, BoxSelector
+from cadquery.selectors import NearestToPointSelector
 
 class Part():
     """
@@ -93,12 +93,13 @@ class FixMount(Part):
             "thick": 15,
             "up": 16,
             "intercut": 1,
-            "fix_h":12,
+            "fix_h":14,
             "fix_w":11,
             "leg_width":20,
             "pos_lateral": 25,
             "main_plane": "YZ",
-            "fillet":2,
+            "fillet":1,
+            "fillet_up":5,
     }
     def __init__(self):
         super().__init__(FixMount.params)
@@ -114,34 +115,48 @@ class FixMount(Part):
                 .circle(self.d/2, mode='s')
                 .rect(self.d*2, self.intercut, mode='s')
                 .reset()
-                # select virtices of da sketch to fillet 
-                #.vertices("not >Y").fillet(self.fillet)
+                .clean()
         )
-        test = (
-                Sketch()
-                .circle(2)
-        )
+        #debug(sketch)
+        def cut_hole(f):
+#TODO Add params to main params dict!!!!
+            center = f.Center()
+            normal = f.normalAt()
+            plane = Plane(origin=center, normal=normal)
+            res = (
+                    Workplane(plane).tag('base')
+                    .circle(6.5/2).extrude(-15)
+                    .workplaneFromTagged('base').rect(10.5,10.5).extrude(-2)
+                    .workplaneFromTagged('base').rect(10.5,10.5).extrude(5)
+            )
+            return res.val()
+
         res = (
                 Workplane(self.main_plane)
                 .placeSketch(sketch)
                 .extrude(self.thick)
-                #.faces('>X or <X').edges('not >Z').fillet(self.fillet/2)
-
-                # TEST ZONE TO SE$LECT AND CUT THRU
-                .faces("+Z")
-                .faces("not >Z")
-                .faces('>Z')
-                .sketch().circle(3).finalize().cutBlind(3)
-        )
-        #res = res.translate((self.pos_lateral,0,-(self.d/2+self.up)))
+                # FILLET lateral
+                .faces('>X or <X').edges('not >Z').fillet(self.fillet)
+                # Fillet upper laateral edge
+                .faces('#Z').faces('>Z').edges("<Z").fillet(self.fillet_up)
+                # fillet lower lateral edge
+                .faces("+Z").faces('not >Z').faces('>Z').tag('fix')
+                .edges('#Y').edges('not(>Y or <Y)')
+                .fillet(8)
+                # cut holes for bolts and inserts
+                .faces(tag='fix')
+                .each(cut_hole, combine='s')
+                .clean()
+            )
+        res = res.translate((self.pos_lateral,0,-(self.d/2+self.up)))
         # Mirror fix holda
-        #res =  res.union(res.mirror(self.main_plane))
+        res =  res.union(res.mirror(self.main_plane))
 
         return res 
 
 
 plate = PlateAdhesive()
 fix = FixMount()
-#show_object(plate.body)
+show_object(plate.body)
 show_object(fix.body)
 
