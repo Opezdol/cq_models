@@ -1,4 +1,5 @@
 from cadquery import Workplane, Vector, Face, Plane, Sketch, Location
+from cadquery.selectors import InverseSelector, BoxSelector
 
 class Part():
     """
@@ -97,6 +98,7 @@ class FixMount(Part):
             "leg_width":20,
             "pos_lateral": 25,
             "main_plane": "YZ",
+            "fillet":2,
     }
     def __init__(self):
         super().__init__(FixMount.params)
@@ -111,21 +113,35 @@ class FixMount(Part):
                 .reset()
                 .circle(self.d/2, mode='s')
                 .rect(self.d*2, self.intercut, mode='s')
+                .reset()
+                # select virtices of da sketch to fillet 
+                #.vertices("not >Y").fillet(self.fillet)
+        )
+        test = (
+                Sketch()
+                .circle(2)
         )
         res = (
                 Workplane(self.main_plane)
                 .placeSketch(sketch)
                 .extrude(self.thick)
+                #.faces('>X or <X').edges('not >Z').fillet(self.fillet/2)
+
+                # TEST ZONE TO SE$LECT AND CUT THRU
+                .faces("+Z")
+                .faces("not >Z")
+                .faces('>Z')
+                .sketch().circle(3).finalize().cutBlind(3)
         )
         #res = res.translate((self.pos_lateral,0,-(self.d/2+self.up)))
         # Mirror fix holda
         #res =  res.union(res.mirror(self.main_plane))
 
-        return res
+        return res 
 
 
 plate = PlateAdhesive()
 fix = FixMount()
-show_object(plate.body)
+#show_object(plate.body)
 show_object(fix.body)
 
