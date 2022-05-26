@@ -8,6 +8,7 @@ class Part():
 
     """
     def __init__(self, params = {}):
+
         if isinstance(params, dict):
 
             if not ("name" in params.keys()):
@@ -21,6 +22,8 @@ class Part():
         else:
             raise ValueError('Params of model should be passed as dict')
         self.body = self.make()
+
+
 
     def test(self):
         for key, value in self.__dict__.items():
@@ -51,6 +54,7 @@ class PlateAdhesive(Part):
         "cut_wing": 22.5,       # |
         "fillet": 2,
         }
+
     def __init__(self):
         super().__init__(params = PlateAdhesive.params)
 
@@ -154,9 +158,53 @@ class FixMount(Part):
 
         return res 
 
+class PlateToFix(PlateAdhesive):
+    params = {
+            "name": "Plate To fix",
+            "length": 22,
+        }
+    def __init__(self):
+        super().__init__()
+        self.__dict__.update(PlateToFix.params)
+        self.update()
+    def update(self):
+        face = self.body.faces(">X")
+        sketch = (
+                Sketch()
+                .push([(0,(self.base_thick-self.fillet)/2)])
+                .rect(self.base_length-self.fillet*2,
+                    (self.base_thick-self.fillet))
+                .push([(0,self.wing_h/2)])
+                .rect(self.wing_l - self.fillet*2, self.wing_h)
+                .push([(0,self.wing_h)])
+                .rect(5, self.wing_h)
+                .clean()
+                .reset()
+                .vertices().fillet(self.fillet/2)
+                )
+        sk  = (
+                Sketch()
+                .rect(20,self.wing_h)
+                .reset()
+                .vertices().fillet(self.fillet)
+                )
+        self.body = (
+                face.workplane()
+                .placeSketch(sketch,
+                    sk.moved(Location(
+                        Vector(0,3, self.length/2))),
+                    sk.moved(Location(
+                        Vector(0,2, self.length)))
+                    )
+
+                .loft()
+                )
+        self.body += self.body.mirror('YZ')
+
 
 plate = PlateAdhesive()
 fix = FixMount()
-show_object(plate.body)
-show_object(fix.body)
-
+plate_to_fix = PlateToFix()
+#show_object(plate.body, name=plate.name)
+show_object(fix.body, name=fix.name)
+show_object(plate_to_fix.body, name=plate_to_fix.name)
