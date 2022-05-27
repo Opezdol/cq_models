@@ -1,4 +1,4 @@
-from cadquery import Workplane, Vector, Face, Plane, Sketch, Location
+from cadquery import Workplane, Vector, Face, Plane, Sketch, Location, Shape
 from cadquery.selectors import NearestToPointSelector
 
 class Part():
@@ -36,6 +36,18 @@ class Part():
         msg = f'{self.name}.make() not implemented'
         raise NotImplementedError(msg)
 
+    def cutout(self, anoutherPart):
+        inter = self.body.intersect(anoutherPart.body)
+        loc =  inter.val().Center()
+        print('___' *5)
+        print('Init loacation ', loc.toTuple())
+        debug (inter)
+        reloc =  inter.val().scale(1.04)
+        print('After scale loc ', reloc.Center().toTuple())
+        trVec =  loc - reloc.Center()
+        cutBody = reloc.translate(trVec)
+        self.body -= cutBody
+
 
 class PlateAdhesive(Part):
     """ std plate for goPro mount """
@@ -53,6 +65,7 @@ class PlateAdhesive(Part):
         "cut_height": 4.5,      # |
         "cut_wing": 22.5,       # |
         "fillet": 2,
+        "main_plain":'YZ',
         }
 
     def __init__(self):
@@ -151,17 +164,20 @@ class FixMount(Part):
                 .faces(tag='fix')
                 .each(cut_hole, combine='s')
                 .clean()
+                # Pin for part connection
+                .faces(">Z").workplane(centerOption='CenterOfMass')
+                .rect(self.thick,5).extrude(5)
             )
         res = res.translate((self.pos_lateral,0,-(self.d/2+self.up)))
         # Mirror fix holda
-        res =  res.union(res.mirror(self.main_plane))
+        #res =  res.union(res.mirror(self.main_plane))
 
         return res 
 
 class PlateToFix(PlateAdhesive):
     params = {
             "name": "Plate To fix",
-            "length": 22,
+            "length": 21,
         }
     def __init__(self):
         super().__init__()
@@ -199,12 +215,16 @@ class PlateToFix(PlateAdhesive):
 
                 .loft()
                 )
-        self.body += self.body.mirror('YZ')
+        #self.body += self.body.mirror('YZ')
 
 
 plate = PlateAdhesive()
 fix = FixMount()
 plate_to_fix = PlateToFix()
+#### OBejcts operations
+plate_to_fix.cutout(fix)
+plate_to_fix.body += plate_to_fix.body.mirror('YZ')
+fix.body += fix.body.mirror('YZ')
 #show_object(plate.body, name=plate.name)
 show_object(fix.body, name=fix.name)
 show_object(plate_to_fix.body, name=plate_to_fix.name)
