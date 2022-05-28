@@ -77,4 +77,5 @@ holda = (
         .faces("<Y or <X").each(placeCutout,combine='s', useLocalCoordinates=False)
         .edges('>(-1,-1,0) or >(1,1,0)').fillet(FILLET)
         )
+
 show_object(holda)
