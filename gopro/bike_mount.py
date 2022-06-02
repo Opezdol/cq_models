@@ -166,7 +166,7 @@ class FixMount(Part):
                 .clean()
                 # Pin for part connection
                 .faces(">Z").workplane(centerOption='CenterOfMass')
-                .rect(self.thick,5).extrude(5)
+                .rect(self.thick,5).extrude(3.5)
             )
         res = res.translate((self.pos_lateral,0,-(self.d/2+self.up)))
         # Mirror fix holda
@@ -224,7 +224,7 @@ plate_to_fix = PlateToFix()
 #### OBejcts operations
 plate_to_fix.cutout(fix)
 plate_to_fix.body += plate_to_fix.body.mirror('YZ')
-fix.body += fix.body.mirror('YZ')
+#fix.body += fix.body.mirror('YZ')
 #show_object(plate.body, name=plate.name)
 show_object(fix.body, name=fix.name)
 show_object(plate_to_fix.body, name=plate_to_fix.name)

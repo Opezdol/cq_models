@@ -1,0 +1,5 @@
+{
+    "venvPath": "~/miniconda3/envs",
+    "venv": "cad",
+    "pythonVersion": 3.10
+}

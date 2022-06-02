@@ -85,4 +85,32 @@ def discord_test():
     extrude_next = box_with_sketch.extrude(until="next")
     show_object(extrude_value)
     show_object(extrude_next.translate((13,0,0)))
-show_object(distribute_example())
+def discord_sweep_example():
+
+    arr2 = []
+
+    def sinecurv(tmax,its):
+        for i in range(0,its):
+            cval = tmax*i/its
+            arr2.append((sin(cval),cval))
+        return arr2
+
+    sinecurv(2*pi,40)
+
+    f0 = (cq.Workplane("XY")
+    .spline(arr2)
+    )
+
+    profile = cq.Wire.makeCircle(.4, center=f0.val().positionAt(0), normal=f0.val().tangentAt(0))
+    f2 = cq.Solid.sweep(outerWire=profile,innerWires=[], path=f0.val())
+
+    f1 = (cq.Workplane("XY")
+    .circle(.4)
+    .sweep(path=f0.val(),normal=f0.val().tangentAt(0))
+    )
+
+    show_object(f2,options={"alpha":0.1, "color": (65, 94, 55)})
+    show_object(f1.translate((2,0,0)),options={"alpha":0.1, "color": (95, 44, 55)})
+    show_object(f0.translate((3,0,0)),options={"alpha":0.1, "color": (65, 94, 155)})
+
+

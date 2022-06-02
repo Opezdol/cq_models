@@ -5,20 +5,21 @@ from helpers import Part
 
 class Holda_1D(Part):
     params = {
-            "name": "Angle holda",
+            "name": "1D holda cap",
             "prof_width":20,
-            "prof_height": 30, 
-            "prof_thick": 4,
-            "prof_fillet": 1, 
-            "prof_radius": 5,
+            "prof_height": 30,
+            "prof_thick": 3.2,
+            "prof_fillet": 1,
+            "prof_radius": 12,
             "len": 70,
             "fillet": 1.2,
             "main_plane": 'YZ', 
-            "main_angle": 120,  # defines Z axis direction
+            "radius":20,
+            "delta": 25,
 
             }
     def __init__(self):
-        super().__init__(params = Holda.params)
+        super().__init__(params = Holda_1D.params)
 
     def get_profile(self, profile:str = '')-> Sketch:
         """
@@ -37,87 +38,43 @@ class Holda_1D(Part):
             case 'round':
                 return (
                         Sketch()
-                        .circle(self.prof_radius)
+                        .circle(self.radius)
                         )
 
 
     def make(self):
-        def make_arm(f):
-            center = f.Center().toTuple()
-            normal = f.normalAt().toTuple()
-            plane = Plane(origin = center, normal=normal)
-            res = (
-                    Workplane(plane)
-                    .placeSketch(sketch)
-                    .extrude(self.len)
-            )
-            return res.val()
+        """
+        Here we make body of any part
+        """
 
-        # base Cube
-        baseCube = (
-                Workplane()
-                .rect(self.prof_width+self.prof_thick*2,
-                    self.prof_width+self.prof_thick*2)
-                .extrude(self.prof_height+self.prof_thick*2)
-        )
-        #Double angle
-        double = (
-                baseCube
-                .faces(">X or >Y").each(make_arm, combine='a')
-                )
-        # Triple Angle
-        base_oval = (
+        plane = Workplane('YZ').tag('base') # X - oriented
+        #circle sketch
+        circle = (
                 Sketch()
-                .circle(10)
+                .circle(self.prof_radius)
                 )
-        triple = (
-                double 
-                # locate origin point
-                #create baseZ plane for construction
-                .faces('<Z').edges('<X').vertices('<Y')
-                .workplane(centerOption='CenterOfMass')
-                # rotate 45 && offset
-                .transformed( rotate=(0,0,45+90), offset=(4,4,0))
-                .tag('baseZ')
-                # __LOFT ANGLE Form
-                .placeSketch(base_oval,
-                    base_oval.moved(Location(
-                        Vector(2,2, self.prof_height*2/3))),
-                    sketch.moved(Location(
-                        Vector(0,0,self.prof_height+self.prof_thick*2)))
+        #profile  = self.get_profile('round')
+        profile = self.get_profile('square')
+        # loft profile
+        obj = (
+                # sphere base
+                plane.sphere(self.prof_radius)
+                #circle to loft
+                .workplaneFromTagged('base')
+                .placeSketch(circle,
+                    profile.moved(Location(Vector((0,0,self.delta*0.33)))),
+                    profile.moved(Location(Vector((0,0,self.delta*0.69)))),
+                    profile.moved(Location(Vector((0,0,self.delta)))),
                     )
-
-                # false for simple manage
-                .loft(combine=False)
-                #make extrusion at Z axis
-                .workplaneFromTagged('baseZ')
-                .transformed(offset=(0,0,self.prof_height+self.prof_thick*2))
-                # Sharped Dressed man YAA! =))
-                .tag('ZZtop')
-                .placeSketch(sketch).extrude(self.len)
+                .loft()
                 )
-        # combine both
-        triple+=double
-        #reinforcements
-        triple = self._make_reinforcements(triple)
-        # cut off 
-        triple = self._cutoff(triple)
-
-        # fillet double
-        res = double.edges().fillet(self.fillet)
-        # make fix holes
-        res = (
-                res.faces('<Z').workplane()
-                .pushPoints([
-                    (0,0),(self.len,0),(0,-self.len),
-                    (self.len/2,0),(0,-self.len/2), 
-                    ])
-                .circle(3).cutBlind(-self.prof_thick,taper=40)
+        obj = (
+                obj
+                .faces('>X').workplane().tag('outer')
+                .placeSketch(profile)
+                .extrude(self.len)
                 )
-
-        return (triple.clean()
-                #.faces(">Z[-2]")
-                )
+        return obj.clean()
 
     def _make_reinforcements(self, res):
         """
@@ -183,8 +140,46 @@ class Holda_1D(Part):
         res = obj.cut(cut_body.val())
         return res.clean()
 
+class Holda_2D(Holda_1D):
+    def __init__(self, angle: float = 120.0) -> None:
+        super().__init__()
+        self.x = super().make()
+        self.angle = angle
+        self.name = 'Holda 2D angled'
+        self.fillet =3.7
+    def make(self):
+        res = self.x.rotate(
+                axisStartPoint=(0,0,0),
+                axisEndPoint=(0,0,1),
+                angleDegrees= self.angle,
+                )
+        res  = res.union(self.x)
+        return res##self.make_reinforcement(res)
+
+
+    def make_reinforcement(self, obj):
+        baseplane = obj.workplaneFromTagged('outer')
+        # transform plane
+        base = baseplane.transformed(
+                rotate=(0,self.angle/2,0))
+        base = base.transformed(
+                offset=(0,0,50)).tag('inter')
+        base = (
+                base.rect(40,5)
+                .extrude(40,'a')
+                # fillet
+                #.faces(">Z[2]")
+                #.edges("<Y or <X").fillet(self.fillet)
+                #.faces(">Z[3]").edges('<Y or <X')
+                #.fillet(self.fillet)
+                )
+
+        show_object(base)
+
+        return obj
 
 
 
-holda = Holda()
+holda = Holda_2D(90)
+print(holda)
 show_object(holda.body, name = holda.name)
