@@ -114,3 +114,42 @@ def discord_sweep_example():
     show_object(f0.translate((3,0,0)),options={"alpha":0.1, "color": (65, 94, 155)})
 
 
+def discord_sound_cone():
+    import cadquery as cq
+    import random
+    from itertools import accumulate
+
+    thickness = 10
+    radius = 150
+    numcircles = radius // thickness
+    max_height = 50
+    tower_count = 20
+    cone_angle = 15
+    main = cq.Assembly()
+    for ring in range(numcircles):
+        randomlist = random.sample(range(10, 30), tower_count)
+        scale = 360 / sum(randomlist)
+        arc_widths = [r * scale for r in randomlist]
+        arc_positions = list(accumulate(arc_widths))
+        for i in range(tower_count):
+            tower_height = random.randrange(0, max_height)
+            tower_wire = (
+                cq.Workplane("XZ")
+                .pushPoints([(ring * thickness, 0)])
+                .rect(thickness, tower_height, centered=False)
+                .rotate((0, 0, 0), (0, 1, 0), cone_angle)
+                .val()
+            )
+            tower = (
+                cq.Workplane("XY")
+                .add(tower_wire)
+                .toPending()
+                .revolve(arc_widths[i], (0, 0, 0), (0, 0, -1))
+                .rotate((0, 0, 0), (0, 0, 1), arc_positions[i])
+            )
+            main.add(tower)
+
+    show_object(main, name="main")
+
+
+
